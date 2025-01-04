@@ -37,9 +37,9 @@ docker-compose exec tools bash -c ". /tmp/helper/functions.sh ; mds_login $MDS_U
 ################################## Run through permutations #############################
 
 for p in $SUPER_USER_PRINCIPAL $CONNECT_ADMIN $CONNECTOR_SUBMITTER $CONNECTOR_PRINCIPAL $SR_PRINCIPAL $KSQLDB_ADMIN $KSQLDB_USER $KSQLDB_SERVER $C3_ADMIN $REST_ADMIN $CLIENT_PRINCIPAL $BADAPP $LISTEN_PRINCIPAL; do
-  for c in " " " --schema-registry-cluster-id $SR" " --connect-cluster-id $CONNECT" " --ksql-cluster-id $KSQLDB"; do
+  for c in " " " --schema-registry-cluster-id $SR" " --connect-cluster $CONNECT" " --ksql-cluster $KSQLDB"; do
     echo
-    echo "Showing bindings for principal $p and --kafka-cluster-id $KAFKA_CLUSTER_ID $c"
+    echo "Showing bindings for principal $p and --kafka-cluster $KAFKA_CLUSTER_ID $c"
     docker-compose exec tools confluent iam rbac role-binding list --principal $p --kafka-cluster-id $KAFKA_CLUSTER_ID $c -o json
     echo
   done

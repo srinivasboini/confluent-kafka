@@ -52,7 +52,8 @@ services:
       - ./scripts/security:/etc/kafka/secrets
 
   tools:
-    image: cnfldemos/tools:0.3
+    image: cnfldemos/tools:0.4
+    platform: linux/arm64
     hostname: tools
     container_name: tools
     volumes:
