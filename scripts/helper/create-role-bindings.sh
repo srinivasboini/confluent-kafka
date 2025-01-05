@@ -10,26 +10,17 @@ KAFKA_CLUSTER_ID=$(get_kafka_cluster_id_from_container)
 
 ################################## SETUP VARIABLES #############################
 MDS_URL=https://kafka1:8091
-CONNECT=connect-cluster
 SR=schema-registry
-KSQLDB=ksql-cluster
 C3=c3-cluster
 LICENSE_RESOURCE="Topic:_confluent-command"
+USERS_RESOURCE="Topic:users"
 
 SUPER_USER=superUser
 SUPER_USER_PASSWORD=superUser
 SUPER_USER_PRINCIPAL="User:$SUPER_USER"
-CONNECT_ADMIN="User:connectAdmin"
-CONNECTOR_SUBMITTER="User:connectorSubmitter"
-CONNECTOR_PRINCIPAL="User:connectorSA"
 SR_PRINCIPAL="User:schemaregistryUser"
-KSQLDB_ADMIN="User:ksqlDBAdmin"
-KSQLDB_USER="User:ksqlDBUser"
-KSQLDB_SERVER="User:controlCenterAndKsqlDBServer"
 C3_ADMIN="User:controlcenterAdmin"
-REST_ADMIN="User:restAdmin"
 CLIENT_PRINCIPAL="User:appSA"
-LISTEN_PRINCIPAL="User:clientListen"
 
 mds_login $MDS_URL ${SUPER_USER} ${SUPER_USER_PASSWORD} || exit 1
 
@@ -47,18 +38,6 @@ confluent iam rbac role-binding create \
     --kafka-cluster $KAFKA_CLUSTER_ID \
     --schema-registry-cluster $SR
 
-confluent iam rbac role-binding create \
-    --principal $SUPER_USER_PRINCIPAL \
-    --role SystemAdmin \
-    --kafka-cluster $KAFKA_CLUSTER_ID \
-    --connect-cluster $CONNECT
-
-confluent iam rbac role-binding create \
-    --principal $SUPER_USER_PRINCIPAL \
-    --role SystemAdmin \
-    --kafka-cluster $KAFKA_CLUSTER_ID \
-    --ksql-cluster $KSQLDB
-
 ################################### SCHEMA REGISTRY ###################################
 echo "Creating role bindings for Schema Registry"
 
@@ -68,6 +47,7 @@ confluent iam rbac role-binding create \
     --role SecurityAdmin \
     --kafka-cluster $KAFKA_CLUSTER_ID \
     --schema-registry-cluster $SR
+
 
 # ResourceOwner for groups and topics on broker
 for resource in Topic:_schemas Topic:_exporter_configs Topic:_exporter_states Group:schema-registry
@@ -88,6 +68,14 @@ do
         --kafka-cluster $KAFKA_CLUSTER_ID
 done
 
+for role in DeveloperRead DeveloperWrite
+do
+    confluent iam rbac role-binding create \
+        --principal $CLIENT_PRINCIPAL \
+        --role $role \
+        --resource $USERS_RESOURCE \
+        --kafka-cluster $KAFKA_CLUSTER_ID
+done
 
 
 ############################## Control Center ###############################
@@ -99,17 +87,9 @@ confluent iam rbac role-binding create \
     --role SystemAdmin \
     --kafka-cluster $KAFKA_CLUSTER_ID
 
-############################## Rest Proxy ###############################
-echo "Creating role bindings for Rest Proxy"
-for role in DeveloperRead DeveloperWrite
-do
-    confluent iam rbac role-binding create \
-        --principal $REST_ADMIN \
-        --role $role \
-        --resource $LICENSE_RESOURCE \
-        --kafka-cluster $KAFKA_CLUSTER_ID
-done
+echo "list acls"
 
+confluent iam rbac role-binding list --principal $SR_PRINCIPAL --kafka-cluster $KAFKA_CLUSTER_ID
 
 ######################### Print #########################
 
@@ -123,5 +103,4 @@ echo
 echo "Principals:"
 echo "    super user account: $SUPER_USER_PRINCIPAL"
 echo "    Schema Registry user: $SR_PRINCIPAL"
-echo "    Rest Admin: $REST_ADMIN"
 echo

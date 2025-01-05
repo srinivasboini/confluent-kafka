@@ -1,0 +1,27 @@
+docker-compose exec tools bash -c "confluent iam rbac role-binding list \
+--principal User:appSA --kafka-cluster $KAFKA_CLUSTER_ID"
+
+docker-compose exec tools bash -c "confluent iam rbac role-binding list \
+--principal User:appSA --kafka-cluster $KAFKA_CLUSTER_ID"
+
+# Create the role binding for the topic ``wikipedia.parsed``
+docker-compose exec tools bash -c "confluent iam rbac role-binding create \
+    --principal User:appSA \
+    --role ResourceOwner \
+    --resource Topic:wikipedia \
+    --kafka-cluster $KAFKA_CLUSTER_ID"
+
+# Create the role binding for the group ``wikipedia.test``
+docker-compose exec tools bash -c "confluent iam rbac role-binding create \
+    --principal User:badapp \
+    --role ResourceOwner \
+    --resource Group:wikipedia.test \
+    --kafka-cluster-id $KAFKA_CLUSTER_ID"
+
+# Create the role binding for the subject ``wikipedia.parsed-value``, i.e., the topic-value (versus the topic-key)
+docker-compose exec tools bash -c "confluent iam rbac role-binding create \
+    --principal User:badapp \
+    --role ResourceOwner \
+    --resource Subject:wikipedia.parsed-value \
+    --kafka-cluster-id $KAFKA_CLUSTER_ID \
+    --schema-registry-cluster-id schema-registry"

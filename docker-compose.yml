@@ -101,6 +101,7 @@ services:
       - 10091:10091
       - 11091:11091
       - 12091:12091
+      - 13091:13091
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2182
       KAFKA_ZOOKEEPER_SSL_CLIENT_ENABLE: 'true'
@@ -119,10 +120,10 @@ services:
       KAFKA_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD: confluent
       KAFKA_ZOOKEEPER_SSL_TRUSTSTORE_TYPE: JKS
       KAFKA_ZOOKEEPER_SET_ACL: 'true'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,TOKEN:SASL_SSL,SSL:SSL,CLEAR:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,TOKEN:SASL_SSL,SSL:SSL,CLEAR:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:9091,TOKEN://kafka1:10091,SSL://kafka1:11091,CLEAR://kafka1:12091
-      
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:9091,TOKEN://kafka1:10091,SSL://localhost:11091,PLAINTEXT://localhost:13091,CLEAR://localhost:12091
+
       KAFKA_SUPER_USERS: User:admin;User:mds;User:superUser;User:ANONYMOUS
       KAFKA_LOG4J_LOGGERS: "kafka.authorizer.logger=INFO"
       KAFKA_LOG4J_ROOT_LOGLEVEL: INFO
@@ -298,7 +299,7 @@ services:
       # If using Confluent Health+ for monitoring and alerting, uncomment the line below to run in management mode.
       # CONTROL_CENTER_MODE_ENABLE: "management"
       # You can now remove all Control Center "STREAMS", "MONITORING", and "METRICS" configurations
-      
+
       # general settings
       CONTROL_CENTER_BOOTSTRAP_SERVERS: SASL_SSL://kafka1:10091
       CONTROL_CENTER_REPLICATION_FACTOR: 1
@@ -331,7 +332,7 @@ services:
       CONTROL_CENTER_STREAMS_SSL_KEYSTORE_PASSWORD: confluent
       CONTROL_CENTER_STREAMS_SSL_KEY_PASSWORD: confluent
 
-      # HTTP and HTTPS to Control Center UI 
+      # HTTP and HTTPS to Control Center UI
       CONTROL_CENTER_REST_LISTENERS: http://0.0.0.0:9021,https://0.0.0.0:9022
       CONTROL_CENTER_REST_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.controlCenterAndKsqlDBServer.truststore.jks
       CONTROL_CENTER_REST_SSL_TRUSTSTORE_PASSWORD: confluent
@@ -360,7 +361,7 @@ services:
       # RBAC
       CONTROL_CENTER_REST_AUTHENTICATION_METHOD: BEARER
       PUBLIC_KEY_PATH: /tmp/conf/public.pem
-      
+
       # Used by Control Center to connect to MDS to verify tokens and authenticate clients
       CONFLUENT_METADATA_BOOTSTRAP_SERVER_URLS: https://kafka1:8091
       CONFLUENT_METADATA_BASIC_AUTH_USER_INFO: controlcenterAdmin:controlcenterAdmin
@@ -439,69 +440,3 @@ services:
       # Already included above, but including comment here for emphasis
       # SCHEMA_REGISTRY_RESOURCE_EXTENSION_CLASS: io.confluent.schema.exporter.SchemaExporterResourceExtension
       SCHEMA_REGISTRY_KAFKASTORE_UPDATE_HANDLERS: io.confluent.schema.exporter.storage.SchemaExporterUpdateHandler
-
-
-  restproxy:
-    image: ${REPOSITORY}/cp-kafka-rest:${CONFLUENT_DOCKER_TAG}
-    restart: always
-    depends_on:
-      schemaregistry:
-        condition: service_healthy
-    hostname: restproxy
-    container_name: restproxy
-    volumes:
-      - ./scripts/security:/etc/kafka/secrets
-      - ./scripts/app:/etc/kafka/app
-      - ./scripts/security/keypair:/tmp/conf
-    ports:
-      - 8086:8086
-    environment:
-      KAFKA_REST_HOST_NAME: restproxy
-      KAFKA_REST_BOOTSTRAP_SERVERS: SASL_SSL://kafka1:10091
-      KAFKA_REST_LISTENERS: https://0.0.0.0:8086
-
-      KAFKA_REST_SCHEMA_REGISTRY_URL: https://schemaregistry:8085
-      KAFKA_REST_SCHEMA_REGISTRY_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.client.truststore.jks
-      KAFKA_REST_SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: confluent
-
-      KAFKA_REST_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.restproxy.truststore.jks
-      KAFKA_REST_SSL_TRUSTSTORE_PASSWORD: confluent
-      KAFKA_REST_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.restproxy.keystore.jks
-      KAFKA_REST_SSL_KEYSTORE_PASSWORD: confluent
-      KAFKA_REST_SSL_KEY_PASSWORD: confluent
-      KAFKA_REST_SSL_CLIENT_AUTHENTICATION: 'NONE'
-
-      KAFKA_REST_CLIENT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.restproxy.truststore.jks
-      KAFKA_REST_CLIENT_SSL_TRUSTSTORE_PASSWORD: confluent
-      KAFKA_REST_CLIENT_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.restproxy.keystore.jks
-      KAFKA_REST_CLIENT_SSL_KEYSTORE_PASSWORD: confluent
-      KAFKA_REST_CLIENT_SSL_KEY_PASSWORD: confluent
-
-      # Credentials and classpath for cub kafka-ready
-      CUB_CLASSPATH: '/usr/share/java/confluent-security/kafka-rest/*:/usr/share/java/kafka-rest/*:/usr/share/java/cp-base-new/*'
-      
-      # Enable OAuth for REST Proxy's embedded Kafka client that accesses and manages consumer groups and topics
-      KAFKA_REST_CLIENT_SECURITY_PROTOCOL: SASL_SSL
-      KAFKA_REST_CLIENT_SASL_MECHANISM: OAUTHBEARER
-      KAFKA_REST_CLIENT_SASL_LOGIN_CALLBACK_HANDLER_CLASS: io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler
-      KAFKA_REST_CLIENT_SASL_JAAS_CONFIG: |
-              org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-              username="restAdmin" \
-              password="restAdmin" \
-              metadataServerUrls="https://kafka1:8091";
-      KAFKA_REST_SSL_CIPHER_SUITES: ${SSL_CIPHER_SUITES}
-
-      # Enable bearer token authentication which allows the identity of the REST Proxy end user to be propagated to Kafka for authorization
-      KAFKA_REST_KAFKA_REST_RESOURCE_EXTENSION_CLASS: io.confluent.kafkarest.security.KafkaRestSecurityResourceExtension
-      KAFKA_REST_REST_SERVLET_INITIALIZOR_CLASSES: io.confluent.common.security.jetty.initializer.InstallBearerOrBasicSecurityHandler
-      KAFKA_REST_PUBLIC_KEY_PATH: /tmp/conf/public.pem
-
-      # Used by REST Proxy to connect to MDS to verify tokens and authenticate clients
-      KAFKA_REST_CONFLUENT_METADATA_SERVER_URLS_MAX_AGE_MS: 60000
-      KAFKA_REST_CLIENT_CONFLUENT_METADATA_SERVER_URLS_MAX_AGE_MS: 60000
-      KAFKA_REST_CONFLUENT_METADATA_BOOTSTRAP_SERVER_URLS: https://kafka1:8091
-      KAFKA_REST_CONFLUENT_METADATA_HTTP_AUTH_CREDENTIALS_PROVIDER: BASIC
-      KAFKA_REST_CONFLUENT_METADATA_BASIC_AUTH_USER_INFO: 'restAdmin:restAdmin'
-
-
-

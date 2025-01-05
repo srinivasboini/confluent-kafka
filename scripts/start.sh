@@ -13,8 +13,6 @@ preflight_checks || exit
 ${DIR}/stop.sh
 
 CLEAN=${CLEAN:-false}
-VIZ=false
-
 
 # Set the CLEAN variable to true if cert doesn't exist
 if ! [[ -f "${DIR}/security/controlCenterAndKsqlDBServer-ca1-signed.crt" ]] || ! check_num_certs; then
@@ -27,7 +25,6 @@ echo
 echo "Environment parameters"
 echo "  REPOSITORY=$REPOSITORY"
 echo "  CLEAN=$CLEAN"
-echo "  VIZ=$VIZ"
 echo
 
 
@@ -102,17 +99,6 @@ echo
 
 #-------------------------------------------------------------------------------
 
-# Start more containers
-docker-compose up --no-recreate -d restproxy
-
-
-if [[ "$VIZ" == "true" ]]; then
-  build_viz || exit 1
-fi
-
-
-#-------------------------------------------------------------------------------
-
 
 # Verify Docker containers started
 if [[ $(docker-compose ps) =~ "Exit 137" ]]; then
@@ -146,20 +132,3 @@ DONE! From your browser:
 
 EOF
 
-if [[ "$VIZ" == "true" ]]; then
-cat << EOF
-  Kibana
-     $kibanaURL
-
-EOF
-fi
-
-cat << EOF
-Want more? Learn how to replicate data from the on-prem cluster to Confluent Cloud:
-
-     https://docs.confluent.io/platform/current/tutorials/cp-demo/docs/hybrid-cloud.html
-
-Use Confluent Cloud promo code CPDEMO50 to receive \$50 free usage
-----------------------------------------------------------------------------------------------------
-
-EOF
