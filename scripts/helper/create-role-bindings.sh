@@ -49,6 +49,20 @@ confluent iam rbac role-binding create \
     --schema-registry-cluster $SR
 
 
+confluent iam rbac role-binding create \
+    --principal $SR_PRINCIPAL \
+    --role ResourceOwner \
+    --resource Subject:users-avro-value \
+    --kafka-cluster $KAFKA_CLUSTER_ID \
+    --schema-registry-cluster $SR
+
+confluent iam rbac role-binding create \
+    --principal $CLIENT_PRINCIPAL \
+    --role ResourceOwner \
+    --resource Subject:wikipedia-value \
+    --kafka-cluster $KAFKA_CLUSTER_ID \
+    --schema-registry-cluster $SR
+
 # ResourceOwner for groups and topics on broker
 for resource in Topic:_schemas Topic:_exporter_configs Topic:_exporter_states Group:schema-registry
 do

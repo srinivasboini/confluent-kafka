@@ -81,7 +81,7 @@ services:
     hostname: kafka1
     container_name: kafka1
     healthcheck:
-      test: curl --user superUser:superUser -fail --silent --insecure https://kafka1:8091/kafka/v3/clusters/ --output /dev/null || exit 1
+      test: curl --user superUser:superUser -fail --silent --insecure https://localhost:8091/kafka/v3/clusters/ --output /dev/null || exit 1
       interval: 10s
       retries: 25
       start_period: 20s
@@ -386,13 +386,14 @@ services:
       - ./scripts/security/keypair:/tmp/conf
     ports:
       - 8085:8085
+      - 8081:8081
     environment:
       CUB_CLASSPATH: '/usr/share/java/confluent-security/schema-registry/*:/usr/share/java/schema-registry/*:/usr/share/java/schema-registry-plugins/*:/usr/share/java/cp-base-new/*'
 
       SCHEMA_REGISTRY_HOST_NAME: schemaregistry
 
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka1:10091
-      SCHEMA_REGISTRY_LISTENERS: https://0.0.0.0:8085
+      SCHEMA_REGISTRY_LISTENERS: https://0.0.0.0:8085,http://0.0.0.0:8081
       SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: SASL_SSL
 
       SCHEMA_REGISTRY_KAFKASTORE_SASL_MECHANISM: OAUTHBEARER

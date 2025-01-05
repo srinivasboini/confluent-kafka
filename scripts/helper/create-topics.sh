@@ -13,3 +13,4 @@ create_topic kafka1:8091 ${KAFKA_CLUSTER_ID} users-avro true ${auth}
 
 create_topic kafka1:8091 ${KAFKA_CLUSTER_ID} users false ${auth}
 
+create_topic kafka1:8091 ${KAFKA_CLUSTER_ID} wikipedia false ${auth}
